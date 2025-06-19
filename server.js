@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require("socket.io");
 const dotenv = require('dotenv');
 const cors = require('cors');
+const allowedOrigins = [process.env.FRONTEND_URL];
 const connectDB = require('./config/db');
 const { setupSocket } = require('./services/notificationService');
 
@@ -19,16 +20,28 @@ const server = http.createServer(app);
 // Replace with your frontend URL in production
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // Your React frontend URL
+        origin: [
+            process.env.FRONTEND_URL, 
+        ],
         methods: ["GET", "POST"]
     }
 });
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+};
 
 // Pass the 'io' instance to the notification service
 setupSocket(io);
 
 // Middleware
-app.use(cors()); // Enable CORS for all routes
+app.use(cors(corsOptions)); // Enable CORS for all routes
 app.use(express.json()); // Allow server to accept JSON in request body
 
 // API Routes
